@@ -1,0 +1,42 @@
+{% extends "layout.html" %}
+{% block title %}My Progress{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">My Progress</h2>
+
+{% if overall.total %}
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <h5>Overall</h5>
+        <p class="mb-1">Questions answered: <strong>{{ overall.total }}</strong></p>
+        <p class="mb-0">Correct: <strong>{{ overall.correct }}</strong>
+            ({{ ((overall.correct / overall.total) * 100)|int }}%)
+        </p>
+    </div>
+</div>
+
+<h5 class="mb-3">By Category</h5>
+{% for row in stats %}
+<div class="card mb-3 shadow-sm">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="mb-0">{{ row.category_name }}</h6>
+            <span class="badge bg-{% if row.accuracy >= 70 %}success{% elif row.accuracy >= 50 %}warning{% else %}danger{% endif %}">
+                {{ row.accuracy }}%
+            </span>
+        </div>
+        <div class="progress" style="height: 8px;">
+            <div class="progress-bar bg-success" style="width: {{ row.accuracy }}%"></div>
+        </div>
+        <small class="text-muted">{{ row.total_correct }}/{{ row.total_answered }} correct</small>
+    </div>
+</div>
+{% endfor %}
+
+{% else %}
+<div class="alert alert-info">
+    You haven't completed any quizzes yet. <a href="/">Start one now!</a>
+</div>
+{% endif %}
+<a href="/" class="btn btn-primary mt-3">← Back to Categories</a>
+{% endblock %}
