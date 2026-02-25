@@ -14,7 +14,7 @@ Submitted as the final project for Harvard CS50x.
 
 ## Description
 
-The Nuclear Industry Quiz allows registered users to test their knowledge across five topic categories drawn from real regulatory documents and IAEA safety standards. After each quiz round, users see an explanation for every question alongside the correct answer — reinforcing learning rather than just scoring. A progress dashboard tracks accuracy by category over time.
+The Nuclear Industry Quiz allows registered users to test their knowledge across eight topic categories drawn from real regulatory documents and IAEA safety standards. After each quiz round, users see an explanation for every question alongside the correct answer — reinforcing learning rather than just scoring. A progress dashboard tracks accuracy by category over time.
 
 An admin interface allows question and category management without touching the database directly.
 
