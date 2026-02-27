@@ -1,0 +1,59 @@
+{% extends "layout.html" %}
+{% block title %}Quiz Results{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-lg-8">
+
+    <!-- Score summary -->
+    <div class="card shadow-sm mb-4 text-center">
+        <div class="card-body p-4">
+            <h2 class="display-4 fw-bold {% if percentage >= 70 %}text-success{% elif percentage >= 50 %}text-warning{% else %}text-danger{% endif %}">
+                {{ percentage }}%
+            </h2>
+            <p class="fs-5">{{ score }} / {{ total }} correct — {{ category_name }}</p>
+            {% if percentage >= 80 %}
+                <p class="text-success">Excellent work! 🎉</p>
+            {% elif percentage >= 60 %}
+                <p class="text-warning">Good effort — review the explanations below.</p>
+            {% else %}
+                <p class="text-danger">Keep studying — you'll get there.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Question review -->
+    <h5 class="mb-3">Review</h5>
+    {% for item in review %}
+    <div class="card mb-3 border-{{ 'success' if item.is_correct else 'danger' }}">
+        <div class="card-body">
+            <p class="fw-semibold mb-2">{{ loop.index }}. {{ item.question_text }}</p>
+            <p class="mb-1">
+                <span class="badge bg-{{ 'success' if item.is_correct else 'danger' }}">
+                    {{ '✓ Your answer' if item.is_correct else '✗ Your answer' }}
+                </span>
+                {{ item.user_answer }}
+            </p>
+            {% if not item.is_correct %}
+            <p class="mb-1 text-success">
+                <strong>Correct:</strong> {{ item.correct_answer }}
+            </p>
+            {% endif %}
+            {% if item.explanation %}
+            <p class="text-muted small mb-1 mt-2">{{ item.explanation }}</p>
+            {% endif %}
+            {% if item.source %}
+            <small class="text-muted">Source: {{ item.source }}</small>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+
+    <div class="d-flex gap-2 mt-4 mb-5">
+        <a href="/" class="btn btn-outline-secondary">Choose Another Category</a>
+        <a href="/progress" class="btn btn-primary">View My Progress</a>
+    </div>
+
+</div>
+</div>
+{% endblock %}

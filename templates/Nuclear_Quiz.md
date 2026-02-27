@@ -1,0 +1,14 @@
+# YOUR PROJECT TITLE
+#### Video Demo:  <URL HERE>
+#### Description:
+Nuclear Quiz is a local web application that lets registered users test their knowledge of nuclear science and reactor operations through category-based, multiple-choice quizzes. It was built as a CS50 final project using only the tools and techniques covered in the course.
+Technical Stack
+The backend is written in Python using Flask. Sessions are managed with Flask-Session using filesystem storage. The database is SQLite, accessed directly via Python's sqlite3 module with Row factory to support column-name lookups — deliberately avoiding the CS50 SQL wrapper to demonstrate raw database interaction while staying within familiar patterns. Passwords are hashed using Werkzeug's generate_password_hash and check_password_hash. The frontend uses Jinja2 templating, Bootstrap for layout, and vanilla JavaScript for dynamic answer submission via the quiz route's JSON API.
+Application Structure
+The app is organized around five database tables defined in schema.sql: users, categories, questions, answers, and results. Questions have four answer options, one of which is marked correct, along with an explanation, difficulty rating, and source reference. Categories can be given custom icons and descriptions.
+User Features
+Users register and log in to a personal account. From the home page they see all available question categories — such as CANDU Systems, IAEA Safety Standards, and Radiation Protection — each showing its question count. Starting a quiz selects up to 10 random questions from the chosen category and tracks progress through the session. Answers are submitted to a JSON endpoint, which immediately returns the correct answer and explanation so feedback can be shown without a page reload. A results screen at the end of each round shows the score, percentage, and a full review of every question. A progress page breaks down per-category accuracy and totals across all quiz attempts.
+Admin Interface
+A separate admin section, protected by a password-based session, allows an administrator to add and manage categories and questions through web forms without touching the database directly. The admin dashboard displays summary counts of users, questions, categories, and total answers recorded.
+Design Decisions
+The codebase follows CS50's conventions closely: the login_required decorator in helpers.py is patterned directly after the Finance project, and an admin_required decorator extends the same approach for the admin area. The quiz submit route returns JSON rather than an HTML redirect, which keeps the web experience smooth and simultaneously serves as a clean API foundation for the development branch's mobile work. All result attempts are logged to the results table from day one, laying the groundwork for spaced-repetition features planned in future stages.

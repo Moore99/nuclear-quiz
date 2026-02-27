@@ -1,0 +1,32 @@
+services:
+  quiz:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    container_name: nuclear-quiz
+    ports:
+      - "${PORT:-5001}:5000"
+    volumes:
+      - quiz_data:/data
+      # Uncomment for development hot-reload (bind mount):
+      # - ./app.py:/app/app.py
+      # - ./helpers.py:/app/helpers.py
+      # - ./templates:/app/templates
+      # - ./static:/app/static
+    environment:
+      - DATABASE_PATH=/data/nuclear_quiz.db
+      - SESSION_DIR=/data/flask_session
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-changeme}
+      - SECRET_KEY=${SECRET_KEY:-change-this-secret-key}
+      - FLASK_ENV=${FLASK_ENV:-production}
+    networks:
+      - quiz_network
+
+volumes:
+  quiz_data:
+    driver: local
+
+networks:
+  quiz_network:
+    driver: bridge

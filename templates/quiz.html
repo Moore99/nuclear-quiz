@@ -1,0 +1,99 @@
+{% extends "layout.html" %}
+{% block title %}Question {{ current }} of {{ total }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-lg-8">
+
+    <!-- Progress bar -->
+    <div class="mb-3">
+        <div class="d-flex justify-content-between small text-muted mb-1">
+            <span>{{ category_name }}</span>
+            <span>{{ current }} / {{ total }}</span>
+        </div>
+        <div class="progress" style="height: 8px;">
+            <div class="progress-bar bg-success" style="width: {{ (current / total * 100)|int }}%"></div>
+        </div>
+    </div>
+
+    <!-- Question card -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body p-4">
+            <p class="fs-5 fw-semibold mb-4">{{ question.question_text }}</p>
+
+            <div id="answers" class="d-grid gap-2">
+                {% for answer in answers %}
+                <button
+                    class="btn btn-outline-secondary text-start answer-btn"
+                    data-answer-id="{{ answer.id }}"
+                >
+                    {{ answer.answer_text }}
+                </button>
+                {% endfor %}
+            </div>
+
+            <!-- Explanation panel (hidden until answer submitted) -->
+            <div id="explanation" class="alert mt-4 d-none">
+                <strong id="result-label"></strong>
+                <p class="mb-1 mt-2" id="explanation-text"></p>
+                <small class="text-muted" id="source-text"></small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Next button (hidden until answer submitted) -->
+    <div class="d-grid d-none" id="next-btn-container">
+        <a id="next-btn" href="#" class="btn btn-primary btn-lg">Next Question →</a>
+    </div>
+
+</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('.answer-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const answerId = this.dataset.answerId;
+
+        // Disable all buttons after selection
+        document.querySelectorAll('.answer-btn').forEach(b => b.disabled = true);
+
+        // Submit answer via fetch (API-first pattern)
+        const formData = new FormData();
+        formData.append('answer_id', answerId);
+
+        fetch('/quiz/submit', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            // Highlight correct and incorrect answers
+            document.querySelectorAll('.answer-btn').forEach(b => {
+                if (b.dataset.answerId == data.correct_answer_id) {
+                    b.classList.remove('btn-outline-secondary');
+                    b.classList.add('btn-success');
+                } else if (b.dataset.answerId == answerId && !data.is_correct) {
+                    b.classList.remove('btn-outline-secondary');
+                    b.classList.add('btn-danger');
+                }
+            });
+
+            // Show explanation
+            const explanation = document.getElementById('explanation');
+            explanation.classList.remove('d-none');
+            explanation.classList.add(data.is_correct ? 'alert-success' : 'alert-danger');
+            document.getElementById('result-label').textContent = data.is_correct ? '✓ Correct!' : '✗ Incorrect';
+            document.getElementById('explanation-text').textContent = data.explanation || '';
+
+            // Show next button
+            const nextContainer = document.getElementById('next-btn-container');
+            nextContainer.classList.remove('d-none');
+            document.getElementById('next-btn').href = data.next_url;
+        })
+        .catch(err => console.error('Submit error:', err));
+    });
+});
+</script>
+{% endblock %}

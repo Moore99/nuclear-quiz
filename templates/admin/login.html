@@ -1,0 +1,22 @@
+{% extends "layout.html" %}
+{% block title %}Admin Login{% endblock %}
+{% block content %}
+<div class="row justify-content-center mt-5">
+<div class="col-md-4">
+    <div class="card shadow-sm border-warning">
+        <div class="card-body p-4">
+            <h4 class="mb-4 text-center">🔒 Admin Access</h4>
+            <form method="post">
+                <div class="mb-3">
+                    <label class="form-label">Admin Password</label>
+                    <input type="password" name="password" class="form-control" required autofocus>
+                </div>
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-warning">Enter</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+</div>
+{% endblock %}

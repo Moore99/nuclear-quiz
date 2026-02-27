@@ -1,0 +1,1 @@
+-keepclassmembers class com.nuclearmotd.quiz.data.api.** { *; }

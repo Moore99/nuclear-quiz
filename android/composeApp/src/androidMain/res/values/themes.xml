@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Base theme used by the activity; Compose handles actual theming -->
+    <style name="Theme.NuclearQuiz" parent="android:Theme.Material.Light.NoActionBar" />
+</resources>

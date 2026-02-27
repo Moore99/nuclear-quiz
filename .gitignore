@@ -1,0 +1,43 @@
+# Kotlin Multiplatform build outputs
+/build/
+*/build/
+composeApp/build/
+android/build/
+desktop/build/
+iosApp/build/
+
+# Gradle
+.gradle/
+local.properties
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Native build
+.externalNativeBuild/
+.cxx/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Heap dumps (your GitHub blocker)
+*.hprof
+
+# OneDrive placeholder files
+*.cloud
+*.tmp
+*.lnk
+
+# Claude / AI tools
+.claude/
+*.jsonl
+
+# Generated sources
+**/generated/

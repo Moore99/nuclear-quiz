@@ -1,0 +1,19 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.nuclearmotd.quiz.composeApp-mergeDebugResources-50:/values-v30/values-v30.xml",
+            "map": [
+                {
+                    "source": "C:\\Users\\johnh\\.gradle\\caches\\transforms-4\\0294c49e7d8e9d5e7355dfd450cd51cf\\transformed\\material3-release\\res\\values-v30\\values-v30.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "72",
+                        "endOffsets": "123"
+                    }
+                }
+            ]
+        }
+    ]
+}
