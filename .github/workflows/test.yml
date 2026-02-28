@@ -1,0 +1,209 @@
+name: CI/CD - Test & Validate
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  # Job 1: Python linting and syntax checks
+  python-lint:
+    runs-on: ubuntu-latest
+    name: Python Syntax & Linting
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Check Python syntax
+        run: |
+          python -m py_compile app.py api.py helpers.py
+      
+      - name: Check for common security issues
+        run: |
+          pip install bandit
+          bandit -r app.py api.py helpers.py -f json -o bandit-report.json || true
+          cat bandit-report.json
+
+  # Job 2: Security checks (no hardcoded secrets)
+  security-check:
+    runs-on: ubuntu-latest
+    name: Security - Secrets Detection
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Check for secrets in code
+        run: |
+          # Fail if .env file is committed
+          if [ -f .env ]; then
+            echo "❌ CRITICAL: .env file should not be committed!"
+            echo "Add .env to .gitignore and remove from history:"
+            echo "  git rm --cached .env"
+            echo "  git commit -m 'Remove .env from repo'"
+            exit 1
+          fi
+          
+          # Check for hardcoded passwords or keys
+          if grep -r "SECRET_KEY\s*=" app.py api.py helpers.py | grep -v "os.environ"; then
+            echo "❌ WARNING: Hardcoded SECRET_KEY found!"
+            exit 1
+          fi
+          
+          if grep -r "ADMIN_PASSWORD\s*=" app.py api.py helpers.py | grep -v "os.environ"; then
+            echo "❌ WARNING: Hardcoded ADMIN_PASSWORD found!"
+            exit 1
+          fi
+          
+          echo "✅ No hardcoded secrets detected"
+      
+      - name: Detect secrets with truffleHog
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+          extra_args: --debug
+
+  # Job 3: Database schema validation
+  database-schema:
+    runs-on: ubuntu-latest
+    name: Database Schema Validation
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Validate schema.sql
+        run: |
+          # Install SQLite
+          sudo apt-get install -y sqlite3
+          
+          # Create test database and apply schema
+          sqlite3 :memory: < schema.sql > /dev/null && echo "✅ Schema is valid"
+          
+          # Count tables
+          TABLES=$(sqlite3 :memory: < schema.sql | wc -l)
+          echo "Schema contains valid SQL statements"
+
+  # Job 4: Docker build test
+  docker-build:
+    runs-on: ubuntu-latest
+    name: Docker Build Test
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      
+      - name: Build Docker image
+        run: |
+          docker build -t nuclear-quiz:test .
+          docker run --rm nuclear-quiz:test python -c "import app; print('Flask app loaded successfully')"
+
+  # Job 5: Dependencies check
+  dependencies:
+    runs-on: ubuntu-latest
+    name: Dependencies Check
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      
+      - name: Check for known vulnerabilities
+        run: |
+          pip install safety bandit
+          # Check for known vulnerabilities in packages
+          safety check --json || echo "⚠️  Check safety report above"
+
+  # Job 6: .gitignore verification
+  gitignore-check:
+    runs-on: ubuntu-latest
+    name: Gitignore Verification
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Verify sensitive files are ignored
+        run: |
+          echo "Checking .gitignore rules..."
+          
+          # Check if critical files are in .gitignore
+          for file in ".env" "*.db" "flask_session" "__pycache__"; do
+            if grep -q "^$file$" .gitignore || grep -q "^$file/" .gitignore || grep -q "\*$file" .gitignore; then
+              echo "✅ $file is properly ignored"
+            else
+              echo "⚠️  WARNING: $file might not be properly ignored"
+            fi
+          done
+
+  # Final status check
+  ci-summary:
+    runs-on: ubuntu-latest
+    name: CI Summary
+    needs: [python-lint, security-check, database-schema, docker-build, dependencies, gitignore-check]
+    if: always()
+    steps:
+      - name: Check CI Status
+        run: |
+          if [[ ${{ needs.python-lint.result }} == 'failure' || \
+                ${{ needs.security-check.result }} == 'failure' || \
+                ${{ needs.database-schema.result }} == 'failure' || \
+                ${{ needs.docker-build.result }} == 'failure' || \
+                ${{ needs.dependencies.result }} == 'failure' ]]; then
+            echo "❌ CI pipeline failed!"
+            exit 1
+          else
+            echo "✅ All CI checks passed!"
+            echo ""
+            echo "Summary:"
+            echo "  - Python syntax: ${{ needs.python-lint.result }}"
+            echo "  - Security: ${{ needs.security-check.result }}"
+            echo "  - Database schema: ${{ needs.database-schema.result }}"
+            echo "  - Docker build: ${{ needs.docker-build.result }}"
+            echo "  - Dependencies: ${{ needs.dependencies.result }}"
+            echo "  - Gitignore: ${{ needs.gitignore-check.result }}"
+          fi
+
+  # Deployment notification (manual trigger)
+  notify-ready:
+    runs-on: ubuntu-latest
+    name: Ready for Deployment
+    needs: ci-summary
+    if: success() && github.ref == 'refs/heads/main'
+    steps:
+      - name: Create Issue for Deployment
+        uses: actions/create-issue@v2
+        with:
+          title: "✅ Code Ready for Deployment to Production"
+          body: |
+            All CI checks have passed! The code is ready for deployment.
+            
+            **Deployment Steps:**
+            1. Log into your server
+            2. `cd /path/to/nuclear_quiz`
+            3. `git pull origin main`
+            4. `docker compose build`
+            5. `docker compose up -d`
+            6. `docker compose logs -f quiz` (verify startup)
+            
+            **Checklist:**
+            - [ ] Confirm .env file exists and is up-to-date
+            - [ ] Verify database backups
+            - [ ] Test app at quiz.nuclear-motd.com
+            - [ ] Check logs for errors
+            - [ ] Test admin panel (change password, add question)
+            
+            Commit: ${{ github.sha }}
+            Author: ${{ github.actor }}

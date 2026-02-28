@@ -2,21 +2,61 @@
 {% block title %}Admin Login{% endblock %}
 {% block content %}
 <div class="row justify-content-center mt-5">
-<div class="col-md-4">
-    <div class="card shadow-sm border-warning">
-        <div class="card-body p-4">
-            <h4 class="mb-4 text-center">🔒 Admin Access</h4>
-            <form method="post">
-                <div class="mb-3">
-                    <label class="form-label">Admin Password</label>
-                    <input type="password" name="password" class="form-control" required autofocus>
+    <div class="col-md-4">
+        <div class="card shadow border-warning">
+            <div class="card-body p-4">
+                <h4 class="mb-4 text-center">
+                    <i class="fas fa-lock"></i> Admin Access
+                </h4>
+                
+                <div class="alert alert-warning" role="alert">
+                    <small>
+                        <strong>⚠️ Restricted Area</strong><br>
+                        Only authorized administrators should access this panel.
+                    </small>
                 </div>
-                <div class="d-grid">
-                    <button type="submit" class="btn btn-warning">Enter</button>
+                
+                <form method="post">
+                    <div class="mb-3">
+                        <label for="password" class="form-label">
+                            Admin Password
+                        </label>
+                        <input type="password" 
+                               name="password" 
+                               id="password"
+                               class="form-control" 
+                               required 
+                               autofocus
+                               autocomplete="current-password"
+                               placeholder="Enter admin password">
+                        <small class="form-text text-muted">Case-sensitive</small>
+                    </div>
+                    
+                    <div class="d-grid gap-2 mb-3">
+                        <button type="submit" class="btn btn-warning">
+                            <i class="fas fa-sign-in-alt"></i> Enter Admin Panel
+                        </button>
+                    </div>
+                </form>
+                
+                <hr>
+                
+                <div class="text-center">
+                    <a href="/" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-arrow-left"></i> Back to App
+                    </a>
                 </div>
-            </form>
+            </div>
+        </div>
+        
+        <div class="card mt-3 bg-light">
+            <div class="card-body p-3">
+                <small class="text-muted d-block">
+                    <strong>Session Info:</strong><br>
+                    Admin sessions expire after 2 hours for security.
+                </small>
+            </div>
         </div>
     </div>
-</div>
 </div>
 {% endblock %}

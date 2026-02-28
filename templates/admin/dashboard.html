@@ -2,8 +2,29 @@
 {% block title %}Admin Dashboard{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2>Admin Dashboard</h2>
-    <a href="/" class="btn btn-outline-secondary btn-sm">← Back to App</a>
+    <div>
+        <h2>
+            <i class="fas fa-lock-open"></i> Admin Dashboard
+        </h2>
+        {% if admin_timeout %}
+            <small class="text-muted">
+                Session expires at <strong>{{ admin_timeout.strftime('%H:%M:%S') }}</strong>
+            </small>
+        {% endif %}
+    </div>
+    <div class="btn-group" role="group">
+        <a href="/" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-home"></i> Back to App
+        </a>
+        <a href="/admin/logout" class="btn btn-outline-danger btn-sm">
+            <i class="fas fa-sign-out-alt"></i> Logout
+        </a>
+    </div>
+</div>
+
+<div class="alert alert-info mb-4">
+    <i class="fas fa-info-circle"></i> 
+    <strong>Admin Session:</strong> Your admin session will expire after 2 hours of login.
 </div>
 
 <div class="row g-3 mb-4">
@@ -11,7 +32,9 @@
         <div class="card text-center shadow-sm">
             <div class="card-body">
                 <h3 class="display-5">{{ question_count }}</h3>
-                <p class="text-muted mb-0">Questions</p>
+                <p class="text-muted mb-0">
+                    <i class="fas fa-question-circle"></i> Questions
+                </p>
             </div>
         </div>
     </div>
@@ -19,7 +42,9 @@
         <div class="card text-center shadow-sm">
             <div class="card-body">
                 <h3 class="display-5">{{ category_count }}</h3>
-                <p class="text-muted mb-0">Categories</p>
+                <p class="text-muted mb-0">
+                    <i class="fas fa-folder"></i> Categories
+                </p>
             </div>
         </div>
     </div>
@@ -27,7 +52,9 @@
         <div class="card text-center shadow-sm">
             <div class="card-body">
                 <h3 class="display-5">{{ user_count }}</h3>
-                <p class="text-muted mb-0">Users</p>
+                <p class="text-muted mb-0">
+                    <i class="fas fa-users"></i> Users
+                </p>
             </div>
         </div>
     </div>
@@ -35,14 +62,38 @@
         <div class="card text-center shadow-sm">
             <div class="card-body">
                 <h3 class="display-5">{{ result_count }}</h3>
-                <p class="text-muted mb-0">Answers Logged</p>
+                <p class="text-muted mb-0">
+                    <i class="fas fa-check-square"></i> Answers Logged
+                </p>
             </div>
         </div>
     </div>
 </div>
 
-<div class="d-flex gap-2">
-    <a href="/admin/questions" class="btn btn-primary">Manage Questions</a>
-    <a href="/admin/categories" class="btn btn-outline-primary">Manage Categories</a>
+<div class="row g-2 mb-4">
+    <div class="col-auto">
+        <a href="/admin/questions" class="btn btn-primary">
+            <i class="fas fa-edit"></i> Manage Questions
+        </a>
+    </div>
+    <div class="col-auto">
+        <a href="/admin/categories" class="btn btn-outline-primary">
+            <i class="fas fa-list"></i> Manage Categories
+        </a>
+    </div>
+</div>
+
+<div class="card border-secondary">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-shield-alt"></i> Admin Info</h5>
+    </div>
+    <div class="card-body">
+        <p class="mb-2">
+            <strong>Current Role:</strong> Administrator
+        </p>
+        <p class="mb-0 text-muted small">
+            You have full access to question and category management. Use this power responsibly!
+        </p>
+    </div>
 </div>
 {% endblock %}

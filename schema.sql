@@ -3,6 +3,7 @@ CREATE TABLE users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT NOT NULL UNIQUE,
     hash TEXT NOT NULL,
+    is_admin INTEGER NOT NULL DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -13,6 +14,14 @@ CREATE TABLE categories (
     description TEXT,
     icon TEXT
 );
+
+-- Seed categories
+INSERT INTO categories (id, name, description, icon) VALUES
+(1, 'CANDU Reactor Systems', 'Canadian nuclear reactor design and operations', '⚛️'),
+(2, 'CNSC Regulatory Framework', 'Canadian nuclear regulatory standards', '📋'),
+(3, 'IAEA Safety Standards', 'International atomic energy standards', '🌍'),
+(4, 'Radiation Protection', 'Health physics and dose limits', '☢️'),
+(5, 'Nuclear Security & Safeguards', 'Non-proliferation and security measures', '🔒');
 
 -- Questions
 CREATE TABLE questions (

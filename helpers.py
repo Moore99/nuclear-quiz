@@ -1,10 +1,11 @@
 import os
 import sqlite3
 from functools import wraps
+from datetime import datetime
 import jwt
 from flask import redirect, request, session, jsonify, g, current_app
 
-import os
+# Use same database path as init_db.py
 DATABASE = os.environ.get(
     "DATABASE_PATH",
     os.path.join(os.path.dirname(os.path.abspath(__file__)), "nuclear_quiz.db")
@@ -29,11 +30,24 @@ def login_required(f):
 
 
 def admin_required(f):
-    """Redirect to admin login if not authenticated as admin."""
+    """Redirect to admin login if not authenticated as admin. Checks session timeout."""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if not session.get("is_admin"):
             return redirect("/admin/login")
+        
+        # Check admin session timeout (if admin_timeout is set)
+        admin_timeout_str = session.get("admin_timeout")
+        if admin_timeout_str:
+            admin_timeout = datetime.fromisoformat(admin_timeout_str)
+            if datetime.now() > admin_timeout:
+                # Session expired
+                session.pop("is_admin", None)
+                session.pop("admin_login_time", None)
+                session.pop("admin_timeout", None)
+                session.modified = True
+                return redirect("/admin/login")
+        
         return f(*args, **kwargs)
     return decorated_function
 

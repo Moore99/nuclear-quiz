@@ -1,4 +1,6 @@
 import os
+from datetime import datetime, timedelta
+from functools import wraps
 from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for
 from flask_session import Session
 from flask_cors import CORS
@@ -14,7 +16,7 @@ app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_TYPE"] = "filesystem"
 app.config["SESSION_FILE_DIR"] = os.environ.get(
     "SESSION_DIR",
-    os.path.join(os.path.dirname(os.path.abspath(__file__)), "flask_session")
+    "/tmp/flask_session"
 )
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key-change-in-production")
 os.makedirs(app.config["SESSION_FILE_DIR"], exist_ok=True)
@@ -77,26 +79,39 @@ def register():
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
-    session.clear()
-    if request.method == "POST":
-        username = request.form.get("username")
-        password = request.form.get("password")
+    try:
+        if request.method == "POST":
+            username = request.form.get("username")
+            password = request.form.get("password")
 
-        if not username or not password:
-            flash("Must provide username and password", "danger")
-            return render_template("login.html")
+            if not username or not password:
+                flash("Must provide username and password", "danger")
+                return render_template("login.html")
 
-        db = get_db()
-        user = db.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
+            db = get_db()
+            user = db.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
 
-        if not user or not check_password_hash(user["hash"], password):
-            flash("Invalid username or password", "danger")
-            return render_template("login.html")
+            if not user:
+                flash("Invalid username or password", "danger")
+                return render_template("login.html")
 
-        session["user_id"] = user["id"]
-        return redirect("/")
+            if not check_password_hash(user["hash"], password):
+                flash("Invalid username or password", "danger")
+                return render_template("login.html")
 
-    return render_template("login.html")
+            # grant user session and propagate admin status from database
+            session["user_id"] = user["id"]
+            if user["is_admin"]:
+                session["is_admin"] = True
+            # Force session to be saved
+            session.modified = True
+            return redirect("/")
+
+        return render_template("login.html")
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return render_template("login.html")
 
 
 @app.route("/logout")
@@ -342,27 +357,59 @@ def progress():
 
 @app.route("/admin/login", methods=["GET", "POST"])
 def admin_login():
+    """Admin authentication with session timeout (2 hours)."""
     if request.method == "POST":
-        if request.form.get("password") == ADMIN_PASSWORD:
+        password = request.form.get("password")
+        if not password:
+            flash("Password is required", "danger")
+            return render_template("admin/login.html")
+            
+        if password == ADMIN_PASSWORD:
             session["is_admin"] = True
+            # Set admin session expiration (2 hours from now)
+            session["admin_login_time"] = datetime.now().isoformat()
+            session["admin_timeout"] = (datetime.now() + timedelta(hours=2)).isoformat()
+            session.modified = True
+            flash("Admin access granted", "success")
             return redirect("/admin")
-        flash("Invalid admin password", "danger")
+        else:
+            flash("Invalid admin password", "danger")
     return render_template("admin/login.html")
+
+
+@app.route("/admin/logout")
+def admin_logout():
+    """Logout from admin panel."""
+    session.pop("is_admin", None)
+    session.pop("admin_login_time", None)
+    session.pop("admin_timeout", None)
+    session.modified = True
+    flash("Admin session ended", "info")
+    return redirect("/admin/login")
 
 
 @app.route("/admin")
 @admin_required
 def admin_dashboard():
+    """Admin dashboard with statistics."""
     db = get_db()
     question_count = db.execute("SELECT COUNT(*) as n FROM questions").fetchone()["n"]
     user_count = db.execute("SELECT COUNT(*) as n FROM users").fetchone()["n"]
     category_count = db.execute("SELECT COUNT(*) as n FROM categories").fetchone()["n"]
     result_count = db.execute("SELECT COUNT(*) as n FROM results").fetchone()["n"]
+    
+    # Get admin session info
+    admin_timeout_str = session.get("admin_timeout")
+    admin_timeout = None
+    if admin_timeout_str:
+        admin_timeout = datetime.fromisoformat(admin_timeout_str)
+    
     return render_template("admin/dashboard.html",
         question_count=question_count,
         user_count=user_count,
         category_count=category_count,
-        result_count=result_count
+        result_count=result_count,
+        admin_timeout=admin_timeout
     )
 
 

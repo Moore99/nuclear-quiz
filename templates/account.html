@@ -4,42 +4,90 @@
     Account Management
 {% endblock %}
 
-{% block main %}
-    <div class="container py-5">
+{% block content %}
+    <div class="container py-5 text-dark">
         <div class="row justify-content-center">
             <div class="col-md-6">
-                <div class="card mb-4">
+                <!-- Change Password Card -->
+                <div class="card mb-5 text-dark">
                     <div class="card-header bg-primary text-white">
-                        <h4 class="mb-0">Change Password</h4>
+                        <h4 class="mb-0">
+                            <i class="fas fa-lock"></i> Change Password
+                        </h4>
                     </div>
                     <div class="card-body">
-                        <form action="/account" method="post">
+                        <form id="passwordForm" action="/account" method="post" onsubmit="validatePasswordForm(event)">
                             <input type="hidden" name="action" value="change_password">
+                            
                             <div class="mb-3 text-start">
-                                <label for="current_password" class="form-label">Current Password</label>
-                                <input type="password" name="current_password" id="current_password" class="form-control" required>
+                                <label for="current_password" class="form-label">
+                                    Current Password <span class="text-danger">*</span>
+                                </label>
+                                <input type="password" name="current_password" id="current_password" 
+                                       class="form-control" required autocomplete="current-password">
+                                <small class="form-text text-muted">Enter your existing password</small>
                             </div>
+
                             <div class="mb-3 text-start">
-                                <label for="new_password" class="form-label">New Password</label>
-                                <input type="password" name="new_password" id="new_password" class="form-control" required minlength="6">
+                                <label for="new_password" class="form-label">
+                                    New Password <span class="text-danger">*</span>
+                                </label>
+                                <input type="password" name="new_password" id="new_password" 
+                                       class="form-control" required minlength="6" 
+                                       oninput="validatePasswords()" autocomplete="new-password">
+                                <small class="form-text text-muted">Minimum 6 characters</small>
                             </div>
+
                             <div class="mb-3 text-start">
-                                <label for="confirm_password" class="form-label">Confirm New Password</label>
-                                <input type="password" name="confirm_password" id="confirm_password" class="form-control" required>
+                                <label for="confirm_password" class="form-label">
+                                    Confirm New Password <span class="text-danger">*</span>
+                                </label>
+                                <input type="password" name="confirm_password" id="confirm_password" 
+                                       class="form-control" required 
+                                       oninput="validatePasswords()" autocomplete="new-password">
+                                <div id="passwordMismatchAlert" class="alert alert-warning mt-2 d-none" role="alert">
+                                    <small><i class="fas fa-exclamation-triangle"></i> Passwords do not match</small>
+                                </div>
                             </div>
-                            <button type="submit" class="btn btn-primary w-100">Update Password</button>
+
+                            <button type="submit" id="passwordSubmitBtn" class="btn btn-primary w-100">
+                                <i class="fas fa-save"></i> Update Password
+                            </button>
                         </form>
+
+                        {% if session.get('account_success') %}
+                            <div class="alert alert-success mt-3 mb-0" role="alert">
+                                <i class="fas fa-check-circle"></i> Password updated successfully!
+                            </div>
+                        {% endif %}
                     </div>
                 </div>
 
-                <div class="card border-danger">
+                <!-- Danger Zone Card -->
+                <div class="card border-danger text-dark">
                     <div class="card-header bg-danger text-white">
-                        <h4 class="mb-0">Danger Zone</h4>
+                        <h4 class="mb-0">
+                            <i class="fas fa-exclamation-circle"></i> Danger Zone
+                        </h4>
                     </div>
                     <div class="card-body">
-                        <p class="text-muted small">Once you delete your account, there is no going back. Please be certain.</p>
-                        <button type="button" class="btn btn-outline-danger w-100" data-bs-toggle="modal" data-bs-target="#deleteModal">
-                            Delete My Account
+                        <p class="text-muted mb-3">
+                            <small>
+                                <strong>Deleting your account will permanently remove:</strong>
+                            </small>
+                        </p>
+                        <ul class="small text-muted ms-3">
+                            <li>All your quiz progress</li>
+                            <li>Your performance statistics</li>
+                            <li>Your leaderboard entries (if any)</li>
+                            <li>All personal data associated with your account</li>
+                        </ul>
+                        <p class="text-muted small mt-3">
+                            <strong class="text-danger">⚠️ This action cannot be undone.</strong>
+                        </p>
+                        <button type="button" class="btn btn-outline-danger w-100" 
+                                data-bs-toggle="modal" data-bs-target="#deleteModal">
+                            <i class="fas fa-trash-alt"></i> Delete My Account
                         </button>
                     </div>
                 </div>
@@ -50,22 +98,115 @@
     <!-- Delete Confirmation Modal -->
     <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
         <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="deleteModalLabel">Permanently delete account?</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="modal-content border-danger">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title" id="deleteModalLabel">
+                        <i class="fas fa-exclamation-circle"></i> Permanently Delete Account?
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    Are you absolutely sure? This will erase all your progress and statistics forever.
+                    <div class="alert alert-danger" role="alert">
+                        <strong>Warning:</strong> This action is <strong>permanent and irreversible</strong>.
+                    </div>
+                    <p>
+                        Are you absolutely certain you want to delete your account? All of the following will be erased forever:
+                    </p>
+                    <ul>
+                        <li>Your quiz progress and statistics</li>
+                        <li>Your performance history</li>
+                        <li>Your account and all associated data</li>
+                    </ul>
+                    <p class="mb-0">
+                        <small class="text-muted">If you have any doubts, please contact support before proceeding.</small>
+                    </p>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <form action="/account" method="post">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                    <form action="/account" method="post" style="display: inline;">
                         <input type="hidden" name="action" value="delete_account">
-                        <button type="submit" class="btn btn-danger">Yes, Delete Everything</button>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash-alt"></i> Yes, Delete Everything
+                        </button>
                     </form>
                 </div>
             </div>
         </div>
     </div>
+
+    <style>
+        .card {
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+        .card-header {
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+    </style>
+
+    <script>
+        function validatePasswords() {
+            const newPw = document.getElementById('new_password').value;
+            const confirmPw = document.getElementById('confirm_password').value;
+            const mismatchAlert = document.getElementById('passwordMismatchAlert');
+            const submitBtn = document.getElementById('passwordSubmitBtn');
+
+            if (newPw && confirmPw && newPw !== confirmPw) {
+                mismatchAlert.classList.remove('d-none');
+                submitBtn.disabled = true;
+            } else {
+                mismatchAlert.classList.add('d-none');
+                submitBtn.disabled = false;
+            }
+
+            // Also validate minimum length
+            if (newPw && newPw.length < 6) {
+                submitBtn.disabled = true;
+            }
+        }
+
+        function validatePasswordForm(event) {
+            const currentPw = document.getElementById('current_password').value;
+            const newPw = document.getElementById('new_password').value;
+            const confirmPw = document.getElementById('confirm_password').value;
+
+            if (!currentPw || !newPw || !confirmPw) {
+                event.preventDefault();
+                alert('All password fields are required.');
+                return false;
+            }
+
+            if (newPw.length < 6) {
+                event.preventDefault();
+                alert('New password must be at least 6 characters.');
+                return false;
+            }
+
+            if (newPw !== confirmPw) {
+                event.preventDefault();
+                alert('New passwords do not match.');
+                return false;
+            }
+
+            return true;
+        }
+
+        // Clear success message on page load or when user starts typing
+        document.addEventListener('DOMContentLoaded', function() {
+            const inputs = document.querySelectorAll('#passwordForm input');
+            inputs.forEach(input => {
+                input.addEventListener('input', function() {
+                    const alert = document.querySelector('.alert.alert-success');
+                    if (alert) alert.remove();
+                });
+            });
+        });
+    </script>
 {% endblock %}

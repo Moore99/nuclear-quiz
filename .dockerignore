@@ -1,8 +1,90 @@
+# Version control
+.git/
+.gitignore
+.github/
+
+# Python
 venv/
+env/
+ENV/
 __pycache__/
 *.pyc
 *.pyo
+*.pyd
+*.egg-info/
+.pytest_cache/
+.coverage
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Security (NEVER include in image)
+.env
+.env.*.local
+*.key
+*.pem
+*.p12
+
+# Database & Session files
+*.db
+*.sqlite
+*.sqlite3
 flask_session/
-nuclear_quiz.db.bak
-.git/
+*.db-wal
+*.db-shm
+
+# Backups & Archives
+*.bak
+*.backup
+*.tar
+*.tar.gz
+*.zip
+*.rar
+
+# Docker & Build
+docker-compose.yml
+Dockerfile.dev
+.dockerignore
+
+# Documentation
 *.md
+README*
+CHANGELOG*
+LICENSE
+docs/
+
+# OS files
+Thumbs.db
+*.cloud
+*.tmp
+*.lnk
+
+# Development files
+.nosync/
+.claude/
+*.jsonl
+test_data/
+debug_logs/
+
+# Node/Frontend stuff (if any)
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Android/iOS build artifacts
+android/build/
+android/.gradle/
+ios/Pods/
+iosApp/build/
+
+# Large/temporary
+*.log
+*.hprof
+dist/
+build/
+out/

@@ -17,7 +17,7 @@ def init_db():
     db.row_factory = sqlite3.Row
     db.execute("PRAGMA foreign_keys = ON")
 
-    with open("schema.sql") as f:
+    with open("schema.sql", encoding="utf-8") as f:
         db.executescript(f.read())
 
     db.commit()

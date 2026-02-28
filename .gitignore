@@ -1,20 +1,53 @@
-# Kotlin Multiplatform build outputs
+# ═══════════════════════════════════════════════════════════════════════════
+# SECURITY: SECRETS & CREDENTIALS (DO NOT COMMIT)
+# ═══════════════════════════════════════════════════════════════════════════
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+*.p12
+*.keystore
+
+# Database files (contain production data)
+*.db
+*.sqlite
+*.sqlite3
+nuclear_quiz.db
+nuclear_quiz.db-wal
+nuclear_quiz.db-shm
+
+# Session/cache files
+flask_session/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# IDE secrets
+.idea/
+.vscode/settings.json
+.vscode/launch.json
+
+# ═══════════════════════════════════════════════════════════════════════════
+# BUILD & GRADLE
+# ═══════════════════════════════════════════════════════════════════════════
 /build/
 */build/
 composeApp/build/
 android/build/
 desktop/build/
 iosApp/build/
-
-# Gradle
 .gradle/
 local.properties
+gradle-wrapper.jar
 
 # Android Studio / IntelliJ
 .idea/
 *.iml
 *.iws
 *.ipr
+*.iws
 
 # Native build
 .externalNativeBuild/
@@ -27,7 +60,7 @@ Thumbs.db
 # Logs
 *.log
 
-# Heap dumps (your GitHub blocker)
+# Heap dumps
 *.hprof
 
 # OneDrive placeholder files
@@ -41,3 +74,18 @@ Thumbs.db
 
 # Generated sources
 **/generated/
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# Public folder temp files
+dist/
+.next/
+out/
+
+# Docker container volumes (local cache)
+docker_data/
+data/
