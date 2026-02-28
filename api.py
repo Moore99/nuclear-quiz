@@ -39,7 +39,7 @@ def _parse_question_ids(quiz):
 
 
 # ─────────────────────────────────────────────
-# AUTH
+# AUTH & ACCOUNT
 # ─────────────────────────────────────────────
 
 @api_bp.route("/auth/register", methods=["POST"])
@@ -83,6 +83,61 @@ def api_login():
 
     token = _make_token(user["id"])
     return jsonify({"token": token, "user_id": user["id"]}), 200
+
+
+@api_bp.route("/auth/reset-password", methods=["POST"])
+def api_reset_password():
+    # Admin/Safety reset: Overwrites password using username.
+    # In a real app, this would require email verification.
+    data = request.get_json(silent=True) or {}
+    username = data.get("username", "").strip()
+    new_password = data.get("new_password", "")
+
+    if not username or not new_password:
+        return jsonify({"error": "username and new_password are required"}), 400
+
+    db = get_db()
+    user = db.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    pw_hash = generate_password_hash(new_password)
+    db.execute("UPDATE users SET hash = ? WHERE id = ?", (pw_hash, user["id"]))
+    db.commit()
+    return jsonify({"message": "Password reset successful"}), 200
+
+
+@api_bp.route("/auth/change-password", methods=["POST"])
+@jwt_required
+def api_change_password():
+    data = request.get_json(silent=True) or {}
+    current_password = data.get("current_password", "")
+    new_password = data.get("new_password", "")
+
+    if not current_password or not new_password:
+        return jsonify({"error": "current_password and new_password are required"}), 400
+
+    db = get_db()
+    user = db.execute("SELECT hash FROM users WHERE id = ?", (g.user_id,)).fetchone()
+    if not check_password_hash(user["hash"], current_password):
+        return jsonify({"error": "Current password incorrect"}), 401
+
+    pw_hash = generate_password_hash(new_password)
+    db.execute("UPDATE users SET hash = ? WHERE id = ?", (pw_hash, g.user_id))
+    db.commit()
+    return jsonify({"message": "Password updated successful"}), 200
+
+
+@api_bp.route("/auth/delete-account", methods=["DELETE"])
+@jwt_required
+def api_delete_account():
+    db = get_db()
+    # Delete results, sessions, and then the user
+    db.execute("DELETE FROM results WHERE user_id = ?", (g.user_id,))
+    db.execute("DELETE FROM quiz_sessions WHERE user_id = ?", (g.user_id,))
+    db.execute("DELETE FROM users WHERE id = ?", (g.user_id,))
+    db.commit()
+    return jsonify({"message": "Account deleted forever"}), 200
 
 
 # ─────────────────────────────────────────────
@@ -282,7 +337,7 @@ def api_quiz_results(quiz_id):
     return jsonify({
         "quiz_id": quiz_id,
         "score": score,
-        "total": total,
+        "total_questions": total,
         "percentage": percentage,
         "review": review,
     })

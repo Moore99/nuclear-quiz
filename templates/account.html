@@ -1,0 +1,71 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Account Management
+{% endblock %}
+
+{% block main %}
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h4 class="mb-0">Change Password</h4>
+                    </div>
+                    <div class="card-body">
+                        <form action="/account" method="post">
+                            <input type="hidden" name="action" value="change_password">
+                            <div class="mb-3 text-start">
+                                <label for="current_password" class="form-label">Current Password</label>
+                                <input type="password" name="current_password" id="current_password" class="form-control" required>
+                            </div>
+                            <div class="mb-3 text-start">
+                                <label for="new_password" class="form-label">New Password</label>
+                                <input type="password" name="new_password" id="new_password" class="form-control" required minlength="6">
+                            </div>
+                            <div class="mb-3 text-start">
+                                <label for="confirm_password" class="form-label">Confirm New Password</label>
+                                <input type="password" name="confirm_password" id="confirm_password" class="form-control" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">Update Password</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card border-danger">
+                    <div class="card-header bg-danger text-white">
+                        <h4 class="mb-0">Danger Zone</h4>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted small">Once you delete your account, there is no going back. Please be certain.</p>
+                        <button type="button" class="btn btn-outline-danger w-100" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                            Delete My Account
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteModalLabel">Permanently delete account?</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    Are you absolutely sure? This will erase all your progress and statistics forever.
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <form action="/account" method="post">
+                        <input type="hidden" name="action" value="delete_account">
+                        <button type="submit" class="btn btn-danger">Yes, Delete Everything</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

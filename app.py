@@ -1,5 +1,5 @@
 import os
-from flask import Flask, flash, jsonify, redirect, render_template, request, session
+from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for
 from flask_session import Session
 from flask_cors import CORS
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -30,7 +30,7 @@ with app.app_context():
     ensure_quiz_sessions_table(_db)
     _db.close()
 
-print("APP STARTED OK")  # add this line
+print("APP STARTED OK")
 
 # Admin password (env variable in production, hardcoded for dev)
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin123")
@@ -106,6 +106,47 @@ def logout():
 
 
 # ─────────────────────────────────────────────
+# ACCOUNT MANAGEMENT
+# ─────────────────────────────────────────────
+
+@app.route("/account", methods=["GET", "POST"])
+@login_required
+def account():
+    if request.method == "POST":
+        action = request.form.get("action")
+        db = get_db()
+
+        if action == "change_password":
+            current_pw = request.form.get("current_password")
+            new_pw = request.form.get("new_password")
+            confirm_pw = request.form.get("confirm_password")
+
+            user = db.execute("SELECT hash FROM users WHERE id = ?", (session["user_id"],)).fetchone()
+            if not check_password_hash(user["hash"], current_pw):
+                flash("Current password incorrect", "danger")
+            elif new_pw != confirm_pw:
+                flash("New passwords do not match", "danger")
+            elif len(new_pw) < 6:
+                flash("New password too short", "danger")
+            else:
+                new_hash = generate_password_hash(new_pw)
+                db.execute("UPDATE users SET hash = ? WHERE id = ?", (new_hash, session["user_id"]))
+                db.commit()
+                flash("Password changed successfully!", "success")
+
+        elif action == "delete_account":
+            db.execute("DELETE FROM results WHERE user_id = ?", (session["user_id"],))
+            db.execute("DELETE FROM quiz_sessions WHERE user_id = ?", (session["user_id"],))
+            db.execute("DELETE FROM users WHERE id = ?", (session["user_id"],))
+            db.commit()
+            session.clear()
+            flash("Account deleted permanently.", "info")
+            return redirect(url_for("login"))
+
+    return render_template("account.html")
+
+
+# ─────────────────────────────────────────────
 # MAIN ROUTES
 # ─────────────────────────────────────────────
 @app.route("/")
@@ -127,14 +168,12 @@ def index():
 @app.route("/quiz/<int:category_id>")
 @login_required
 def quiz_start(category_id):
-    """Start a new quiz session for a given category."""
     db = get_db()
     category = db.execute("SELECT * FROM categories WHERE id = ?", (category_id,)).fetchone()
     if not category:
         flash("Category not found", "danger")
         return redirect("/")
 
-    # Pull 10 random questions from this category (or all if fewer than 10)
     questions = db.execute("""
         SELECT id FROM questions WHERE category_id = ?
         ORDER BY RANDOM() LIMIT 10
@@ -144,14 +183,13 @@ def quiz_start(category_id):
         flash("No questions available in this category yet.", "warning")
         return redirect("/")
 
-    # Store quiz state in session
     session["quiz"] = {
         "category_id": category_id,
         "category_name": category["name"],
         "question_ids": [q["id"] for q in questions],
         "current_index": 0,
         "score": 0,
-        "answers": []  # list of {question_id, answer_id, is_correct}
+        "answers": []
     }
 
     return redirect("/quiz/question")
@@ -160,7 +198,6 @@ def quiz_start(category_id):
 @app.route("/quiz/question")
 @login_required
 def quiz_question():
-    """Serve the current question."""
     quiz = session.get("quiz")
     if not quiz:
         return redirect("/")
@@ -190,10 +227,6 @@ def quiz_question():
 @app.route("/quiz/submit", methods=["POST"])
 @login_required
 def quiz_submit():
-    """
-    Submit an answer. Returns JSON so this works as an API endpoint
-    for a future mobile app with no changes needed.
-    """
     quiz = session.get("quiz")
     if not quiz:
         return jsonify({"error": "No active quiz"}), 400
@@ -205,7 +238,6 @@ def quiz_submit():
     question_id = quiz["question_ids"][quiz["current_index"]]
     db = get_db()
 
-    # Check if answer is correct
     answer = db.execute("SELECT * FROM answers WHERE id = ?", (answer_id,)).fetchone()
     correct_answer = db.execute(
         "SELECT * FROM answers WHERE question_id = ? AND is_correct = 1",
@@ -215,14 +247,12 @@ def quiz_submit():
 
     is_correct = 1 if answer and answer["is_correct"] else 0
 
-    # Log result to database (powers spaced repetition in Stage 2)
     db.execute("""
         INSERT INTO results (user_id, question_id, answer_id, is_correct)
         VALUES (?, ?, ?, ?)
     """, (session["user_id"], question_id, answer_id, is_correct))
     db.commit()
 
-    # Update session state
     quiz["answers"].append({
         "question_id": question_id,
         "answer_id": answer_id,
@@ -236,7 +266,6 @@ def quiz_submit():
     session["quiz"] = quiz
     session.modified = True
 
-    # Return JSON — works for web (via JS) and future mobile app
     return jsonify({
         "is_correct": is_correct,
         "correct_answer_id": correct_answer["id"],
@@ -249,7 +278,6 @@ def quiz_submit():
 @app.route("/quiz/results")
 @login_required
 def quiz_results():
-    """Show end-of-round summary."""
     quiz = session.get("quiz")
     if not quiz:
         return redirect("/")
@@ -258,7 +286,6 @@ def quiz_results():
     total = len(quiz["question_ids"])
     percentage = round((score / total) * 100) if total > 0 else 0
 
-    # Fetch full question/answer details for review
     db = get_db()
     review = []
     for entry in quiz["answers"]:
@@ -273,7 +300,7 @@ def quiz_results():
             "source": question["source"]
         })
 
-    session.pop("quiz", None)  # Clear quiz state
+    session.pop("quiz", None)
     return render_template("results.html",
         score=score,
         total=total,
@@ -286,7 +313,6 @@ def quiz_results():
 @app.route("/progress")
 @login_required
 def progress():
-    """User progress dashboard."""
     db = get_db()
     stats = db.execute("""
         SELECT
@@ -368,26 +394,23 @@ def admin_questions():
         difficulty = request.form.get("difficulty", type=int, default=1)
         source = request.form.get("source")
 
-        # Four answer options, one marked correct
         answers = [
             request.form.get("answer_1"),
             request.form.get("answer_2"),
             request.form.get("answer_3"),
             request.form.get("answer_4"),
         ]
-        correct_index = request.form.get("correct_answer", type=int)  # 1-4
+        correct_index = request.form.get("correct_answer", type=int)
 
         if not all([category_id, question_text, all(answers), correct_index]):
             flash("All fields are required.", "danger")
         else:
-            # Insert question
             cursor = db.execute("""
                 INSERT INTO questions (category_id, question_text, explanation, difficulty, source)
                 VALUES (?, ?, ?, ?, ?)
             """, (category_id, question_text, explanation, difficulty, source))
             question_id = cursor.lastrowid
 
-            # Insert answers
             for i, answer_text in enumerate(answers):
                 is_correct = 1 if (i + 1) == correct_index else 0
                 db.execute("""
