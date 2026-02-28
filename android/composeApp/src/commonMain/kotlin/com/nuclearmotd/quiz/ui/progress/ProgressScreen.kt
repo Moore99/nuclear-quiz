@@ -14,7 +14,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.nuclearmotd.quiz.UiState
 import com.nuclearmotd.quiz.data.api.ProgressResponse
-import com.nuclearmotd.quiz.data.api.QuizResult
+import com.nuclearmotd.quiz.data.api.CategoryProgress
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -67,106 +67,102 @@ private fun ProgressContent(progress: ProgressResponse) {
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
-            Row(
+            Card(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                )
             ) {
-                StatCard(
-                    label = "Total Quizzes",
-                    value = progress.totalQuizzes.toString(),
-                    modifier = Modifier.weight(1f)
-                )
-                StatCard(
-                    label = "Avg Score",
-                    value = "${progress.averageScore.roundToInt()}%",
-                    modifier = Modifier.weight(1f)
-                )
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Overall Accuracy",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    Text(
+                        text = "${progress.overall.accuracy.roundToInt()}%",
+                        style = MaterialTheme.typography.headlineLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    Text(
+                        text = "${progress.overall.totalCorrect} / ${progress.overall.totalAnswered} correct answers",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                    )
+                }
             }
         }
 
-        if (progress.recentQuizzes.isNotEmpty()) {
-            item {
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    text = "Recent Quizzes",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-            items(progress.recentQuizzes) { quiz ->
-                QuizHistoryCard(quiz = quiz)
-            }
-        } else {
-            item {
-                Text(
-                    text = "No quizzes completed yet. Start your first quiz!",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                )
-            }
+        item {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = "Performance by Category",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+
+        items(progress.byCategory) { category ->
+            CategoryProgressCard(category = category)
         }
     }
 }
 
 @Composable
-private fun StatCard(label: String, value: String, modifier: Modifier = Modifier) {
-    Card(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = value,
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
-            )
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-            )
-        }
-    }
-}
-
-@Composable
-private fun QuizHistoryCard(quiz: QuizResult) {
-    val percentage = quiz.percentage.roundToInt()
-    val passed = percentage >= 70
-
+private fun CategoryProgressCard(category: CategoryProgress) {
+    val accuracy = category.accuracy.roundToInt()
+    
     Card(modifier = Modifier.fillMaxWidth()) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(16.dp)
         ) {
-            Column(modifier = Modifier.weight(1f)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Text(
-                    text = quiz.category ?: "Random",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium
+                    text = category.categoryName,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.weight(1f)
                 )
                 Text(
-                    text = "${quiz.score} / ${quiz.totalQuestions} correct",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    text = "$accuracy%",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = when {
+                        accuracy >= 80 -> MaterialTheme.colorScheme.primary
+                        accuracy >= 50 -> MaterialTheme.colorScheme.secondary
+                        else -> MaterialTheme.colorScheme.error
+                    }
                 )
             }
+            
+            Spacer(Modifier.height(8.dp))
+            
+            LinearProgressIndicator(
+                progress = { category.accuracy.toFloat() / 100f },
+                modifier = Modifier.fillMaxWidth(),
+                color = when {
+                    accuracy >= 80 -> MaterialTheme.colorScheme.primary
+                    accuracy >= 50 -> MaterialTheme.colorScheme.secondary
+                    else -> MaterialTheme.colorScheme.error
+                }
+            )
+            
+            Spacer(Modifier.height(4.dp))
+            
             Text(
-                text = "$percentage%",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = if (passed)
-                    MaterialTheme.colorScheme.primary
-                else
-                    MaterialTheme.colorScheme.error
+                text = "${category.totalCorrect} correct of ${category.totalAnswered} answered",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
             )
         }
     }

@@ -136,8 +136,23 @@ data class ResultsResponse(
 // ── Progress ──────────────────────────────────────────────────────────────────
 
 @Serializable
+data class CategoryProgress(
+    @SerialName("category_id") val categoryId: Int,
+    @SerialName("category_name") val categoryName: String,
+    @SerialName("total_answered") val totalAnswered: Int,
+    @SerialName("total_correct") val totalCorrect: Int,
+    val accuracy: Double
+)
+
+@Serializable
+data class OverallProgress(
+    @SerialName("total_answered") val totalAnswered: Int,
+    @SerialName("total_correct") val totalCorrect: Int,
+    val accuracy: Double
+)
+
+@Serializable
 data class ProgressResponse(
-    @SerialName("total_quizzes") val totalQuizzes: Int,
-    @SerialName("average_score") val averageScore: Double,
-    @SerialName("recent_quizzes") val recentQuizzes: List<QuizResult>
+    @SerialName("by_category") val byCategory: List<CategoryProgress>,
+    val overall: OverallProgress
 )
