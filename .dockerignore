@@ -1,8 +1,33 @@
+# Environments
 venv/
+.env
+.venv
+env/
+
+# Python junk
 __pycache__/
 *.pyc
 *.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+
+# App data
 flask_session/
 nuclear_quiz.db.bak
+*.db-journal
+
+# Metadata & Tooling
 .git/
+.gitignore
+.dockerignore
+.idea/
+.vscode/
 *.md
+
+# Mobile App Source (not needed for server build)
+android/
+
+# System junk (prevents permission errors on server)
+.*
+!.env.example
