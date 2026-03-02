@@ -7,29 +7,22 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.nuclearmotd.quiz.UiState
 
+/**
+ * Password reset screen — placeholder until a proper email-token reset flow is implemented.
+ *
+ * The previous implementation called an unauthenticated API endpoint that allowed anyone to
+ * reset anyone's password by supplying only a username. That endpoint has been removed.
+ * A secure reset flow (email verification + time-limited token) is on the roadmap.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ResetPasswordScreen(
     onBack: () -> Unit,
-    onSuccess: () -> Unit,
-    vm: AuthViewModel = viewModel()
+    onSuccess: () -> Unit
 ) {
-    val resetState by vm.resetState.collectAsState()
-    var username by remember { mutableStateOf("") }
-    var newPassword by remember { mutableStateOf("") }
-
-    LaunchedEffect(resetState) {
-        if (resetState is UiState.Success) {
-            onSuccess()
-            vm.resetResetState()
-        }
-    }
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -46,47 +39,32 @@ fun ResetPasswordScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(24.dp),
+                .padding(32.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
             Text(
-                text = "Enter your username and new password to reset.",
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(bottom = 24.dp)
+                text = "Password Reset",
+                style = MaterialTheme.typography.headlineSmall
             )
-            OutlinedTextField(
-                value = username,
-                onValueChange = { username = it },
-                label = { Text("Username") },
-                modifier = Modifier.fillMaxWidth()
-            )
+
             Spacer(Modifier.height(16.dp))
-            OutlinedTextField(
-                value = newPassword,
-                onValueChange = { newPassword = it },
-                label = { Text("New Password") },
-                visualTransformation = PasswordVisualTransformation(),
-                modifier = Modifier.fillMaxWidth()
+
+            Text(
+                text = "Forgot your password? Email-based password reset is coming soon.\n\n" +
+                       "In the meantime, contact support to have your password reset manually.",
+                style = MaterialTheme.typography.bodyMedium,
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(Modifier.height(24.dp))
-            Button(
-                onClick = { vm.resetPassword(username, newPassword) },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = resetState !is UiState.Loading && username.isNotBlank() && newPassword.isNotBlank()
+
+            Spacer(Modifier.height(32.dp))
+
+            OutlinedButton(
+                onClick = onBack,
+                modifier = Modifier.fillMaxWidth()
             ) {
-                if (resetState is UiState.Loading) {
-                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                } else {
-                    Text("Reset Password")
-                }
-            }
-            if (resetState is UiState.Error) {
-                Text(
-                    text = (resetState as UiState.Error).message,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
+                Text("Back to Login")
             }
         }
     }

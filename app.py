@@ -103,6 +103,8 @@ def login():
             session["user_id"] = user["id"]
             if user["is_admin"]:
                 session["is_admin"] = True
+                session["admin_login_time"] = datetime.now().isoformat()
+                session["admin_timeout"] = (datetime.now() + timedelta(hours=2)).isoformat()
             # Force session to be saved
             session.modified = True
             return redirect("/")

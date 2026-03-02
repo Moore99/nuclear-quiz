@@ -18,12 +18,6 @@ data class RegisterRequest(
 )
 
 @Serializable
-data class ResetPasswordRequest(
-    val username: String,
-    @SerialName("new_password") val newPassword: String
-)
-
-@Serializable
 data class ChangePasswordRequest(
     @SerialName("current_password") val currentPassword: String,
     @SerialName("new_password") val newPassword: String
@@ -42,6 +36,8 @@ data class AuthResponse(
 data class Category(
     val id: Int,
     val name: String,
+    val description: String? = null,
+    val icon: String? = null,
     @SerialName("question_count") val questionCount: Int
 )
 

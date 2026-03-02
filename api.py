@@ -87,24 +87,10 @@ def api_login():
 
 @api_bp.route("/auth/reset-password", methods=["POST"])
 def api_reset_password():
-    # Admin/Safety reset: Overwrites password using username.
-    # In a real app, this would require email verification.
-    data = request.get_json(silent=True) or {}
-    username = data.get("username", "").strip()
-    new_password = data.get("new_password", "")
-
-    if not username or not new_password:
-        return jsonify({"error": "username and new_password are required"}), 400
-
-    db = get_db()
-    user = db.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()
-    if not user:
-        return jsonify({"error": "User not found"}), 404
-
-    pw_hash = generate_password_hash(new_password)
-    db.execute("UPDATE users SET hash = ? WHERE id = ?", (pw_hash, user["id"]))
-    db.commit()
-    return jsonify({"message": "Password reset successful"}), 200
+    # Removed: this endpoint allowed anyone to reset anyone's password
+    # with only a username — no authentication, no email verification.
+    # A proper email-token reset flow is on the roadmap.
+    return jsonify({"error": "Password reset via this endpoint is not available. Use change-password while authenticated."}), 410
 
 
 @api_bp.route("/auth/change-password", methods=["POST"])

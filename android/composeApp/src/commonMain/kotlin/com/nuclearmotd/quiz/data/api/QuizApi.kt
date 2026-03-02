@@ -52,12 +52,6 @@ class QuizApi(private val httpClient: HttpClient) {
             setBody(request)
         }.parse()
 
-    suspend fun resetPassword(request: ResetPasswordRequest): Unit =
-        httpClient.post("${BASE_URL}auth/reset-password") {
-            contentType(ContentType.Application.Json)
-            setBody(request)
-        }.parse()
-
     suspend fun changePassword(request: ChangePasswordRequest): Unit =
         httpClient.post("${BASE_URL}auth/change-password") {
             contentType(ContentType.Application.Json)
