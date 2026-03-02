@@ -52,6 +52,16 @@ CREATE TABLE results (
     answered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Password reset tokens (one-time, 1-hour expiry)
+CREATE TABLE IF NOT EXISTS password_reset_tokens (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token TEXT NOT NULL UNIQUE,
+    expires_at TIMESTAMP NOT NULL,
+    used INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- API quiz sessions (stateless quiz state for mobile clients; created at runtime by ensure_quiz_sessions_table)
 CREATE TABLE IF NOT EXISTS quiz_sessions (
     id TEXT PRIMARY KEY,

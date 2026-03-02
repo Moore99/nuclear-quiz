@@ -18,6 +18,11 @@ data class RegisterRequest(
 )
 
 @Serializable
+data class ForgotPasswordRequest(
+    val username: String
+)
+
+@Serializable
 data class ChangePasswordRequest(
     @SerialName("current_password") val currentPassword: String,
     @SerialName("new_password") val newPassword: String

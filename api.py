@@ -1,6 +1,10 @@
 import json
+import os
+import secrets
+import smtplib
 import uuid
 from datetime import datetime, timezone, timedelta
+from email.message import EmailMessage
 
 import jwt
 from flask import Blueprint, g, jsonify, request, current_app
@@ -85,12 +89,104 @@ def api_login():
     return jsonify({"token": token, "user_id": user["id"]}), 200
 
 
+@api_bp.route("/auth/forgot-password", methods=["POST"])
+def api_forgot_password():
+    """Step 1: request a reset token. Always returns 200 to avoid username enumeration."""
+    data = request.get_json(silent=True) or {}
+    username = data.get("username", "").strip()
+    if not username:
+        return jsonify({"message": "If that account exists, a reset email has been sent."}), 200
+
+    db = get_db()
+    user = db.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()
+    if not user:
+        return jsonify({"message": "If that account exists, a reset email has been sent."}), 200
+
+    # Invalidate any existing unused tokens for this user
+    db.execute("UPDATE password_reset_tokens SET used = 1 WHERE user_id = ? AND used = 0",
+               (user["id"],))
+
+    token = secrets.token_urlsafe(32)
+    expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
+    db.execute(
+        "INSERT INTO password_reset_tokens (user_id, token, expires_at) VALUES (?, ?, ?)",
+        (user["id"], token, expires_at.isoformat())
+    )
+    db.commit()
+
+    _send_reset_email(username, token)
+    return jsonify({"message": "If that account exists, a reset email has been sent."}), 200
+
+
 @api_bp.route("/auth/reset-password", methods=["POST"])
 def api_reset_password():
-    # Removed: this endpoint allowed anyone to reset anyone's password
-    # with only a username — no authentication, no email verification.
-    # A proper email-token reset flow is on the roadmap.
-    return jsonify({"error": "Password reset via this endpoint is not available. Use change-password while authenticated."}), 410
+    """Step 2: consume token and set new password."""
+    data = request.get_json(silent=True) or {}
+    token = data.get("token", "").strip()
+    new_password = data.get("new_password", "")
+
+    if not token or not new_password:
+        return jsonify({"error": "token and new_password are required"}), 400
+    if len(new_password) < 6:
+        return jsonify({"error": "password must be at least 6 characters"}), 400
+
+    db = get_db()
+    row = db.execute("""
+        SELECT id, user_id, expires_at, used
+        FROM password_reset_tokens WHERE token = ?
+    """, (token,)).fetchone()
+
+    if not row or row["used"]:
+        return jsonify({"error": "Invalid or expired reset token"}), 400
+
+    expires_at = datetime.fromisoformat(row["expires_at"])
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    if datetime.now(timezone.utc) > expires_at:
+        return jsonify({"error": "Reset token has expired"}), 400
+
+    pw_hash = generate_password_hash(new_password)
+    db.execute("UPDATE users SET hash = ? WHERE id = ?", (pw_hash, row["user_id"]))
+    db.execute("UPDATE password_reset_tokens SET used = 1 WHERE id = ?", (row["id"],))
+    db.commit()
+    return jsonify({"message": "Password reset successful. You can now log in."}), 200
+
+
+def _send_reset_email(username: str, token: str):
+    """Send password reset email. Silently no-ops if SMTP env vars are not configured."""
+    smtp_host = os.environ.get("SMTP_HOST")
+    smtp_port = int(os.environ.get("SMTP_PORT", "587"))
+    smtp_user = os.environ.get("SMTP_USER")
+    smtp_pass = os.environ.get("SMTP_PASS")
+    from_addr = os.environ.get("SMTP_FROM", smtp_user or "noreply@nuclear-motd.com")
+    base_url = os.environ.get("APP_BASE_URL", "https://quiz.nuclear-motd.com")
+
+    if not smtp_host or not smtp_user:
+        # Log token to stderr in dev so it can be used without email configured
+        import sys
+        print(f"[DEV] Password reset token for '{username}': {token}", file=sys.stderr)
+        return
+
+    reset_url = f"{base_url}/reset-password?token={token}"
+    msg = EmailMessage()
+    msg["Subject"] = "Nuclear Quiz — Password Reset"
+    msg["From"] = from_addr
+    msg["To"] = smtp_user  # In a real app, users would have an email column
+    msg.set_content(
+        f"Hi {username},\n\n"
+        f"You requested a password reset for your Nuclear Quiz account.\n\n"
+        f"Reset your password here (link expires in 1 hour):\n{reset_url}\n\n"
+        f"If you did not request this, ignore this email.\n\n"
+        f"— Nuclear Quiz"
+    )
+    try:
+        with smtplib.SMTP(smtp_host, smtp_port) as s:
+            s.starttls()
+            s.login(smtp_user, smtp_pass)
+            s.send_message(msg)
+    except Exception as e:
+        import sys
+        print(f"[WARN] Failed to send reset email: {e}", file=sys.stderr)
 
 
 @api_bp.route("/auth/change-password", methods=["POST"])

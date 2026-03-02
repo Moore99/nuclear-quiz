@@ -172,11 +172,7 @@ docker compose logs -f quiz
 Open `android/` in Android Studio → Gradle sync → Run on emulator or device.
 
 ### iOS framework (verify it builds)
-```bash
-cd android
-./gradlew :composeApp:linkDebugFrameworkIosSimulatorArm64
-```
-Then open `android/iosApp/iosApp.xcodeproj` in Xcode and run.
+Use Codemagic — iOS KMP targets cannot compile on Windows. Trigger a Codemagic build to verify both Android and iOS.
 
 ### Key test scenarios
 - Register → login → take quiz → check progress

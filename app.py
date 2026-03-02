@@ -1,7 +1,7 @@
 import os
 from datetime import datetime, timedelta
 from functools import wraps
-from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for
+from flask import Flask, flash, jsonify, redirect, render_template, request, send_file, session, url_for
 from flask_session import Session
 from flask_cors import CORS
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -354,6 +354,77 @@ def progress():
 
 
 # ─────────────────────────────────────────────
+# LEGAL PAGES (public — required by app stores)
+# ─────────────────────────────────────────────
+
+@app.route("/privacy-policy")
+def privacy_policy():
+    return render_template("privacy.html")
+
+
+@app.route("/terms")
+def terms():
+    return render_template("terms.html")
+
+
+@app.route("/reset-password", methods=["GET", "POST"])
+def web_reset_password():
+    """Web landing page for password reset links sent via email."""
+    token = request.args.get("token") or request.form.get("token", "")
+
+    if request.method == "GET":
+        # Validate token so we can show the form or an error
+        valid = False
+        if token:
+            from datetime import timezone as _tz
+            db = get_db()
+            row = db.execute("""
+                SELECT expires_at, used FROM password_reset_tokens WHERE token = ?
+            """, (token,)).fetchone()
+            if row and not row["used"]:
+                exp = datetime.fromisoformat(row["expires_at"])
+                if exp.tzinfo is None:
+                    exp = exp.replace(tzinfo=_tz.utc)
+                valid = datetime.now(_tz.utc) <= exp
+        return render_template("reset_password.html", token=token, token_valid=valid)
+
+    # POST — consume token
+    new_password = request.form.get("new_password", "")
+    confirm = request.form.get("confirm_password", "")
+    if new_password != confirm:
+        flash("Passwords do not match", "danger")
+        return redirect(url_for("web_reset_password", token=token))
+    if len(new_password) < 6:
+        flash("Password must be at least 6 characters", "danger")
+        return redirect(url_for("web_reset_password", token=token))
+
+    from datetime import timezone as _tz
+    db = get_db()
+    row = db.execute("""
+        SELECT id, user_id, expires_at, used FROM password_reset_tokens WHERE token = ?
+    """, (token,)).fetchone()
+
+    if not row or row["used"]:
+        flash("Invalid or already-used reset link.", "danger")
+        return redirect(url_for("login"))
+
+    exp = datetime.fromisoformat(row["expires_at"])
+    if exp.tzinfo is None:
+        exp = exp.replace(tzinfo=_tz.utc)
+    if datetime.now(_tz.utc) > exp:
+        flash("Reset link has expired. Please request a new one.", "danger")
+        return redirect(url_for("login"))
+
+    from werkzeug.security import generate_password_hash as _gph
+    db.execute("UPDATE users SET hash = ? WHERE id = ?",
+               (_gph(new_password), row["user_id"]))
+    db.execute("UPDATE password_reset_tokens SET used = 1 WHERE id = ?", (row["id"],))
+    db.commit()
+    flash("Password reset successfully. You can now log in.", "success")
+    return redirect(url_for("login"))
+
+
+# ─────────────────────────────────────────────
 # ADMIN ROUTES
 # ─────────────────────────────────────────────
 
@@ -485,6 +556,32 @@ def admin_questions():
         categories=categories,
         questions=questions
     )
+
+
+@app.route("/admin/backup")
+@admin_required
+def admin_backup():
+    """Download a snapshot of the database as a .db file."""
+    import shutil, tempfile
+    db_path = os.environ.get(
+        "DATABASE_PATH",
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "nuclear_quiz.db")
+    )
+    tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
+    tmp.close()
+    # Use SQLite online backup API via a temporary connection so the file is
+    # consistent even if there are concurrent writes.
+    import sqlite3 as _sqlite3
+    src = _sqlite3.connect(db_path)
+    dst = _sqlite3.connect(tmp.name)
+    src.backup(dst)
+    dst.close()
+    src.close()
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"nuclear_quiz_backup_{timestamp}.db"
+    return send_file(tmp.name, as_attachment=True, download_name=filename,
+                     mimetype="application/octet-stream")
 
 
 if __name__ == "__main__":

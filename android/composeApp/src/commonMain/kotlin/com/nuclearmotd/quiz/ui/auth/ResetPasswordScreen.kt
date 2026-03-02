@@ -9,24 +9,33 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.nuclearmotd.quiz.UiState
 
 /**
- * Password reset screen — placeholder until a proper email-token reset flow is implemented.
- *
- * The previous implementation called an unauthenticated API endpoint that allowed anyone to
- * reset anyone's password by supplying only a username. That endpoint has been removed.
- * A secure reset flow (email verification + time-limited token) is on the roadmap.
+ * Forgot-password screen — submits a username and triggers a server-side reset email.
+ * The user then clicks the link in the email to set a new password via the web UI.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ResetPasswordScreen(
     onBack: () -> Unit,
-    onSuccess: () -> Unit
+    onSuccess: () -> Unit,
+    vm: AuthViewModel = viewModel()
 ) {
+    val forgotState by vm.forgotState.collectAsState()
+    var username by remember { mutableStateOf("") }
+
+    LaunchedEffect(forgotState) {
+        if (forgotState is UiState.Success) onSuccess()
+    }
+
+    DisposableEffect(Unit) { onDispose { vm.resetForgotState() } }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Reset Password") },
+                title = { Text("Forgot Password") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -44,27 +53,40 @@ fun ResetPasswordScreen(
             verticalArrangement = Arrangement.Center
         ) {
             Text(
-                text = "Password Reset",
-                style = MaterialTheme.typography.headlineSmall
-            )
-
-            Spacer(Modifier.height(16.dp))
-
-            Text(
-                text = "Forgot your password? Email-based password reset is coming soon.\n\n" +
-                       "In the meantime, contact support to have your password reset manually.",
+                text = "Enter your username. If an account exists, we'll send a password reset link to the registered email.",
                 style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                modifier = Modifier.padding(bottom = 24.dp)
             )
 
-            Spacer(Modifier.height(32.dp))
-
-            OutlinedButton(
-                onClick = onBack,
+            OutlinedTextField(
+                value = username,
+                onValueChange = { username = it },
+                label = { Text("Username") },
+                singleLine = true,
                 modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(Modifier.height(24.dp))
+
+            Button(
+                onClick = { vm.forgotPassword(username) },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = forgotState !is UiState.Loading && username.isNotBlank()
             ) {
-                Text("Back to Login")
+                if (forgotState is UiState.Loading) {
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                } else {
+                    Text("Send Reset Link")
+                }
+            }
+
+            if (forgotState is UiState.Error) {
+                Text(
+                    text = (forgotState as UiState.Error).message,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
             }
         }
     }

@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.nuclearmotd.quiz.AppDependencies
 import com.nuclearmotd.quiz.UiState
 import com.nuclearmotd.quiz.data.api.ApiException
+import com.nuclearmotd.quiz.data.api.ForgotPasswordRequest
 import com.nuclearmotd.quiz.data.api.LoginRequest
 import com.nuclearmotd.quiz.data.api.RegisterRequest
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,6 +19,25 @@ class AuthViewModel : ViewModel() {
 
     private val _authState = MutableStateFlow<UiState<Unit>?>(null)
     val authState: StateFlow<UiState<Unit>?> = _authState
+
+    private val _forgotState = MutableStateFlow<UiState<Unit>?>(null)
+    val forgotState: StateFlow<UiState<Unit>?> = _forgotState
+
+    fun forgotPassword(username: String) {
+        _forgotState.value = UiState.Loading
+        viewModelScope.launch {
+            try {
+                api.forgotPassword(ForgotPasswordRequest(username.trim()))
+                _forgotState.value = UiState.Success(Unit)
+            } catch (e: ApiException) {
+                _forgotState.value = UiState.Error("Request failed (${e.statusCode})")
+            } catch (e: Exception) {
+                _forgotState.value = UiState.Error("Network error: ${e.message}")
+            }
+        }
+    }
+
+    fun resetForgotState() { _forgotState.value = null }
 
     fun login(username: String, password: String) {
         _authState.value = UiState.Loading
